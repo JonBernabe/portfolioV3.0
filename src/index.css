@@ -1,0 +1,325 @@
+@import 'tailwindcss';
+
+@theme {
+  /* 721px: anything narrower gets the mobile layout. */
+  --breakpoint-md: 45.0625rem;
+
+  --color-paper: #f4ead6;
+  --color-wood: #7a5230;
+  --color-plank: #d9b47f;
+  --color-ink: #3a2a1b;
+  --color-soft: #57432f;
+  --color-dim: #6f5a44;
+  --color-line: rgb(58 42 27 / 0.22);
+  /* Panel overrides this with the paint colour of the open section. */
+  --color-accent: #2f6b3f;
+
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --font-display: 'Bitter', Georgia, serif;
+
+  --ease-panel: cubic-bezier(0.7, 0, 0.2, 1);
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+    line-height: normal;
+  }
+
+  body {
+    @apply overflow-hidden bg-paper font-sans text-ink antialiased;
+  }
+
+  button {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  /* Both textures are SVG noise drawn by the browser, so no image files. */
+  .plank {
+    border: 1px solid #6d4a24;
+    border-bottom: 3px solid var(--c, #6d4a24);
+    border-radius: 3px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='90'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006 .42' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .34 0 0 0 0 .2 0 0 0 0 .08 0 0 0 1.4 -.6'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E"), linear-gradient(#e4c390, #d2aa72);
+    color: var(--color-ink);
+    box-shadow:
+      inset 0 1px 0 rgb(255 240 210 / 0.5),
+      0 2px 3px rgb(30 15 5 / 0.35);
+  }
+
+  .abaca {
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.018 .7' numOctaves='3' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .36 0 0 0 0 .2 0 0 0 .55 -.24'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"), var(--color-paper);
+  }
+
+  .bamboo {
+    display: block;
+    border-radius: 999px;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        transparent 0 76px,
+        #5d3f1c 76px 78px,
+        #e6cf97 78px 80px
+      ),
+      linear-gradient(#7c5a2c, #c9a463 28%, #ecd7a3 46%, #b88f52 68%, #6b4a24);
+    box-shadow: 0 1px 2px rgb(30 15 5 / 0.4);
+  }
+
+  .bamboo-upright {
+    background:
+      repeating-linear-gradient(
+        0deg,
+        transparent 0 76px,
+        #5d3f1c 76px 78px,
+        #e6cf97 78px 80px
+      ),
+      linear-gradient(
+        90deg,
+        #7c5a2c,
+        #c9a463 28%,
+        #ecd7a3 46%,
+        #b88f52 68%,
+        #6b4a24
+      );
+  }
+
+  .bamboo-frame {
+    --pole: 13px;
+    --reach: 11px;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .bamboo-frame-small {
+    --pole: 8px;
+    --reach: 7px;
+  }
+
+  .bamboo-frame-top,
+  .bamboo-frame-bottom {
+    position: absolute;
+    right: calc(var(--reach) * -1);
+    left: calc(var(--reach) * -1);
+    height: var(--pole);
+  }
+
+  .bamboo-frame-top {
+    top: calc(var(--pole) / -2);
+  }
+
+  .bamboo-frame-bottom {
+    bottom: calc(var(--pole) / -2);
+  }
+
+  .bamboo-frame-left,
+  .bamboo-frame-right {
+    position: absolute;
+    top: calc(var(--reach) * -1);
+    bottom: calc(var(--reach) * -1);
+    width: var(--pole);
+  }
+
+  .bamboo-frame-left {
+    left: calc(var(--pole) / -2);
+  }
+
+  .bamboo-frame-right {
+    right: calc(var(--pole) / -2);
+  }
+
+  /* Rope wrapped diagonally over the spot where two poles cross. */
+  .lashing {
+    position: absolute;
+    width: calc(var(--pole) * 1.75);
+    height: calc(var(--pole) * 1.75);
+    border-radius: 3px;
+    background: repeating-linear-gradient(
+      0deg,
+      #dcc595 0 2px,
+      #8a6b3e 2px 3px
+    );
+    box-shadow: 0 1px 2px rgb(30 15 5 / 0.45);
+    rotate: 45deg;
+  }
+
+  .lashing-nw {
+    top: 0;
+    left: 0;
+    translate: -50% -50%;
+  }
+
+  .lashing-ne {
+    top: 0;
+    right: 0;
+    translate: 50% -50%;
+  }
+
+  .lashing-sw {
+    bottom: 0;
+    left: 0;
+    translate: -50% 50%;
+  }
+
+  .lashing-se {
+    right: 0;
+    bottom: 0;
+    translate: 50% 50%;
+  }
+
+  .bamboo-leaves {
+    position: absolute;
+    width: calc(var(--pole) * 3.6);
+    height: calc(var(--pole) * 3.6);
+    filter: drop-shadow(0 1px 1px rgb(30 15 5 / 0.35));
+  }
+
+  .bamboo-leaves-top {
+    top: calc(var(--pole) * -2.1);
+    right: calc(var(--pole) * -1.4);
+  }
+
+  .bamboo-leaves-bottom {
+    bottom: calc(var(--pole) * -1.9);
+    left: calc(var(--pole) * -1.4);
+    rotate: 180deg;
+  }
+
+  /* A plank on two ropes, which rocks when you hover over it. */
+  .hanging {
+    position: relative;
+    transform-origin: 50% calc(var(--rope, 12px) * -1);
+  }
+
+  .hanging::before,
+  .hanging::after {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    width: 2px;
+    height: var(--rope, 12px);
+    background: repeating-linear-gradient(
+      0deg,
+      #8a6b3e 0 2px,
+      #dcc595 2px 4px
+    );
+  }
+
+  .hanging::before {
+    left: 16%;
+  }
+
+  .hanging::after {
+    right: 16%;
+  }
+
+  .hanging:hover,
+  .hanging:focus-visible {
+    animation: plank-rock 0.9s ease-in-out;
+  }
+
+  /* Hanging star lantern on the loading screen. */
+  .parol {
+    position: relative;
+    width: 74px;
+    height: 74px;
+    transform-origin: 50% -40px;
+    animation: parol-sway 2.4s ease-in-out infinite;
+  }
+
+  .parol::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(#c8402f, #e0a030);
+    clip-path: polygon(
+      50% 0%,
+      61% 35%,
+      98% 35%,
+      68% 57%,
+      79% 91%,
+      50% 70%,
+      21% 91%,
+      32% 57%,
+      2% 35%,
+      39% 35%
+    );
+  }
+
+  .parol::after {
+    content: '';
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    width: 1px;
+    height: 40px;
+    background: var(--color-wood);
+  }
+
+  /* Bahay kubo silhouette, shown outside the Christmas season. */
+  .kubo {
+    width: 74px;
+    height: 74px;
+  }
+
+  .kubo::before {
+    content: '';
+    display: block;
+    height: 100%;
+    background: linear-gradient(#8d6b3c 0 52%, #c8a86f 52% 100%);
+    clip-path: polygon(
+      50% 4%,
+      100% 52%,
+      82% 52%,
+      82% 74%,
+      76% 74%,
+      76% 98%,
+      68% 98%,
+      68% 74%,
+      32% 74%,
+      32% 98%,
+      24% 98%,
+      24% 74%,
+      18% 74%,
+      18% 52%,
+      0% 52%
+    );
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .parol,
+    .hanging:hover,
+    .hanging:focus-visible {
+      animation: none;
+    }
+  }
+}
+
+@keyframes plank-rock {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(3deg);
+  }
+  60% {
+    transform: rotate(-2deg);
+  }
+  85% {
+    transform: rotate(1deg);
+  }
+}
+
+@keyframes parol-sway {
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+  50% {
+    transform: rotate(8deg);
+  }
+}
