@@ -70,7 +70,7 @@ export default function ContactMe() {
       ))}
       <Row label="RESUME">
         <a href="#contact" className="text-[15px] hover:text-accent">
-          add a link ↗
+          No updated resume yet
         </a>
       </Row>
       <button
