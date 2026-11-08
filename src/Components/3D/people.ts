@@ -19,6 +19,11 @@ type FigureOptions = {
   hat?: boolean
   umbrella?: boolean
   size?: number
+  // Picked at random from the village palette when left out.
+  skinTone?: string
+  hairColor?: string
+  shirtColor?: string
+  trousersColor?: string
 }
 
 type Walker = {
@@ -96,11 +101,19 @@ const WALKERS = [
 export function addFigure(
   parent: THREE.Object3D,
   random: Random,
-  { hat = false, umbrella = false, size = 1 }: FigureOptions = {},
+  {
+    hat = false,
+    umbrella = false,
+    size = 1,
+    skinTone,
+    hairColor,
+    shirtColor,
+    trousersColor,
+  }: FigureOptions = {},
 ): Figure {
-  const skin = std(random.pick(SKIN_TONES))
-  const shirt = std(random.pick(SHIRTS))
-  const trousers = std(random.pick(TROUSERS))
+  const skin = std(skinTone ?? random.pick(SKIN_TONES))
+  const shirt = std(shirtColor ?? random.pick(SHIRTS))
+  const trousers = std(trousersColor ?? random.pick(TROUSERS))
 
   const group = new THREE.Group()
   group.scale.setScalar(size)
@@ -152,7 +165,10 @@ export function addFigure(
     salakot.position.y = 0.4
     upper.add(salakot)
   } else {
-    const hair = new THREE.Mesh(HAIR_CAP, std(random.pick(HAIR)))
+    const hair = new THREE.Mesh(
+      HAIR_CAP,
+      std(hairColor ?? random.pick(HAIR)),
+    )
     hair.position.y = 0.318
     upper.add(hair)
   }

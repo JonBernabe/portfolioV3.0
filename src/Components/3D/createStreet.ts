@@ -19,6 +19,7 @@ import {
   updateEnvironment,
 } from "./environment";
 import { createNightLights, createRandom } from "./helpers";
+import { addMe, updateMe, type Me } from "./me";
 import {
   addBanana,
   addBush,
@@ -179,6 +180,7 @@ export function createStreet(
   const swaying: Swaying[] = [];
   let walkers: ReturnType<typeof addWalkers> = [];
   let farmers: ReturnType<typeof addFarmers> = [];
+  let me: Me | null = null;
   let decorations: Decorations | null = null;
   let fireflies: ReturnType<typeof addFireflies> | null = null;
   // Every light is shaded on every pixel even at zero intensity, so phones
@@ -411,6 +413,7 @@ export function createStreet(
     updateVehicles(vehicles, time);
     updateWalkers(walkers, time, night);
     updateFarmers(farmers, time, night);
+    if (me) updateMe(me, time, camera, reducedMotion);
     updateSwaying(swaying, time);
     updateClouds(environment, time);
     if (decorations) updateDecorations(decorations, random, time, night);
@@ -610,6 +613,8 @@ export function createStreet(
       addTricycle(scene, random, nightLights, -1.3, -1, "#7d3fb5", 35),
     );
     fireflies = addFireflies(scene, random);
+    // Last, so its random picks don't reshuffle the rest of the village.
+    me = addMe(scene, random, -14.4, -4.25);
     if (lite) {
       // Phones keep only the street lamps. The sign lamps and headlight beams
       // cost as much to shade but light far less, and the signs glow anyway.
