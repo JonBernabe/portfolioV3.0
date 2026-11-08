@@ -72,6 +72,10 @@ type Tween = {
 
 const SEED = 7;
 const MOBILE_MAX_WIDTH = 720;
+const PIXEL_RATIO = 1.75;
+const LITE_PIXEL_RATIO = 1.25;
+const LITE_SHADOW_MAP = 1024;
+const LITE_SHADOW_EVERY = 2;
 const HOME_TARGET = new THREE.Vector3(0, 1.6, 0);
 const LOADER_HOLD_MS = 900;
 const TAP_TOLERANCE_PX = 6;
@@ -102,6 +106,8 @@ export function createStreet(
   { onSelect, onHover, onInteract, onProgress, onReady }: StreetCallbacks,
 ): Street {
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Phones and tablets get a lighter render so the street stays smooth.
+  const lite = matchMedia("(pointer: coarse)").matches;
   const random = createRandom(SEED);
   const season = getSeason(getNow());
   const { climate } = season;
@@ -110,12 +116,17 @@ export function createStreet(
     antialias: true,
     powerPreference: "high-performance",
   });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+  renderer.setPixelRatio(
+    Math.min(devicePixelRatio, lite ? LITE_PIXEL_RATIO : PIXEL_RATIO),
+  );
   renderer.setSize(innerWidth, innerHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.2;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  // The shadow map is in world space, so the camera can orbit freely while
+  // phones redraw it only every few frames for the slow-moving figures.
+  renderer.shadowMap.autoUpdate = !lite;
   mount.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
@@ -128,16 +139,22 @@ export function createStreet(
   );
   camera.position.copy(homePosition());
 
-  const composer = new EffectComposer(renderer);
-  composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(
-    new THREE.Vector2(innerWidth, innerHeight),
-    0.4,
-    0.4,
-    0.95,
-  );
-  composer.addPass(bloom);
-  composer.addPass(new OutputPass());
+  // Bloom is a stack of full-screen blur passes, too heavy for phones, which
+  // render straight to the canvas instead.
+  let composer: EffectComposer | null = null;
+  let bloom: UnrealBloomPass | null = null;
+  if (!lite) {
+    composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    bloom = new UnrealBloomPass(
+      new THREE.Vector2(innerWidth, innerHeight),
+      0.4,
+      0.4,
+      0.95,
+    );
+    composer.addPass(bloom);
+    composer.addPass(new OutputPass());
+  }
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.target.copy(HOME_TARGET);
@@ -155,12 +172,19 @@ export function createStreet(
   const clickables: BuildingContext["clickables"] = [];
   const nightLights = createNightLights();
   const environment = addEnvironment(scene, random, climate, homeZoom());
+  if (lite) {
+    environment.skyLight.shadow.mapSize.setScalar(LITE_SHADOW_MAP);
+  }
   const vehicles: ReturnType<typeof addJeepney>[] = [];
   const swaying: Swaying[] = [];
   let walkers: ReturnType<typeof addWalkers> = [];
   let farmers: ReturnType<typeof addFarmers> = [];
   let decorations: Decorations | null = null;
   let fireflies: ReturnType<typeof addFireflies> | null = null;
+  // Every light is shaded on every pixel even at zero intensity, so phones
+  // switch the lamps off outright in full daylight. Toggling them recompiles
+  // the shaders, but only once at dawn and once at dusk.
+  const lamps: THREE.Light[] = [];
 
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
@@ -173,6 +197,7 @@ export function createStreet(
   let idleTimer: ReturnType<typeof setTimeout> | undefined;
   let readyTimer: ReturnType<typeof setTimeout> | undefined;
   let frameId = 0;
+  let frameCount = 0;
   let disposed = false;
   let night = 1;
   let nextSkyUpdate = 0;
@@ -242,7 +267,7 @@ export function createStreet(
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
-    composer.setSize(innerWidth, innerHeight);
+    composer?.setSize(innerWidth, innerHeight);
   }
   window.addEventListener("resize", handleResize);
 
@@ -364,9 +389,12 @@ export function createStreet(
 
     updateEnvironment(environment, skyTime);
     nightLights.update(night);
+    for (const lamp of lamps) lamp.visible = night > 0;
     renderer.toneMappingExposure = THREE.MathUtils.lerp(1.2, 1, daylight);
-    bloom.strength = THREE.MathUtils.lerp(0.4, 0.06, daylight);
-    bloom.threshold = THREE.MathUtils.lerp(0.95, 1.4, daylight);
+    if (bloom) {
+      bloom.strength = THREE.MathUtils.lerp(0.4, 0.06, daylight);
+      bloom.threshold = THREE.MathUtils.lerp(0.95, 1.4, daylight);
+    }
   }
 
   function frame() {
@@ -388,7 +416,13 @@ export function createStreet(
     if (decorations) updateDecorations(decorations, random, time, night);
     if (fireflies) updateFireflies(fireflies, time, night);
 
-    composer.render(delta);
+    if (lite) {
+      renderer.shadowMap.needsUpdate = frameCount % LITE_SHADOW_EVERY === 0;
+    }
+    frameCount++;
+
+    if (composer) composer.render(delta);
+    else renderer.render(scene, camera);
     frameId = requestAnimationFrame(frame);
   }
 
@@ -576,6 +610,20 @@ export function createStreet(
       addTricycle(scene, random, nightLights, -1.3, -1, "#7d3fb5", 35),
     );
     fireflies = addFireflies(scene, random);
+    if (lite) {
+      // Phones keep only the street lamps. The sign lamps and headlight beams
+      // cost as much to shade but light far less, and the signs glow anyway.
+      const minorLights = new Set<THREE.Object3D>(
+        [...landmarks.values()].map(({ sign }) => sign.light),
+      );
+      scene.traverse((object) => {
+        if (object instanceof THREE.SpotLight || minorLights.has(object)) {
+          object.visible = false;
+        } else if (object instanceof THREE.PointLight) {
+          lamps.push(object);
+        }
+      });
+    }
     onProgress(1);
   }
 
@@ -610,7 +658,7 @@ export function createStreet(
       domElement.removeEventListener("pointerdown", handlePointerDown);
       domElement.removeEventListener("pointerup", handlePointerUp);
       controls.dispose();
-      composer.dispose();
+      composer?.dispose();
       renderer.dispose();
       // StrictMode remounts in dev, so release the context straight away.
       renderer.forceContextLoss();

@@ -100,14 +100,16 @@ function bamboo(from: Point, to: Point, radius: number, random: Random) {
   return parts
 }
 
-// Rope wound in an X over the spot where the rails cross the posts.
+// Rope wound in an X over the spot where the rails cross the posts. Kept
+// low-poly: the cord is a pixel or two thick even close up, and there are
+// dozens of loops per sign.
 function lashing(x: number, y: number, z: number) {
   const loops: THREE.BufferGeometry[] = []
   for (const angle of [Math.PI / 4, -Math.PI / 4]) {
     for (const offset of [-0.04, 0, 0.04]) {
       loops.push(
         tinted(
-          new THREE.TorusGeometry(0.125, 0.014, 6, 16)
+          new THREE.TorusGeometry(0.125, 0.014, 4, 10)
             .scale(1, 1, 0.45)
             .translate(0, 0, offset)
             .rotateY(Math.PI / 2)

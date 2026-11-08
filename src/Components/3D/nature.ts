@@ -330,8 +330,10 @@ export function addPaddy(
   const spacing = 0.26
   const columns = Math.floor((w - 0.3) / spacing)
   const rows = Math.floor((d - 0.3) / spacing)
+  // Open-ended: the base always sits under the water, and with thousands of
+  // stalks the hidden caps would be half the geometry.
   const rice = new THREE.InstancedMesh(
-    new THREE.ConeGeometry(0.06, 0.34, 5),
+    new THREE.ConeGeometry(0.06, 0.34, 5, 1, true),
     std('#ffffff'),
     columns * rows,
   )
